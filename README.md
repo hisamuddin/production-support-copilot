@@ -20,6 +20,7 @@ No LLM is connected yet. This is intentional: retrieval and grounding will be me
 ## Run locally
 
 ```powershell
+docker-compose -f compose.yaml up -d postgres
 dotnet restore ProductionSupportCopilot.sln --configfile NuGet.Config
 dotnet run --project src/ProductionSupportCopilot.Api
 ```
@@ -40,6 +41,20 @@ Content-Type: application/json
 
 The current response intentionally has `isGrounded: false`, no citations, and status `retrieval_not_configured`.
 
+Lexical retrieval is available at:
+
+```http
+GET /api/v1/retrieval/search?tenantId=10000000-0000-0000-0000-000000000001&query=consumer%20lag&limit=5
+```
+
+In Development, database migrations and three demo runbooks are initialized idempotently. Search results include document/chunk citation metadata and PostgreSQL full-text ranking scores. No LLM is used yet.
+
+In the Development environment, Swagger UI is available at:
+
+```text
+http://localhost:5051/swagger
+```
+
 ## Test
 
 ```powershell
@@ -50,7 +65,8 @@ dotnet test ProductionSupportCopilot.sln
 
 - [Product requirements](docs/product-requirements.md)
 - [ADR 0001: Modular monolith](docs/decisions/0001-modular-monolith.md)
+- [Hinglish learning and decision journal](PROJECT_LEARNING_JOURNAL_HINGLISH.md)
 
 ## Next milestone
 
-Add PostgreSQL, tenant/document/chunk models, deterministic chunking, seed runbooks, and lexical retrieval. The API will return ranked passages with citations before an LLM is allowed to generate an answer.
+PostgreSQL/pgvector, EF Core migrations, deterministic development seeding, and tenant-filtered lexical retrieval are working. Next, build a golden retrieval dataset, measure Recall@K, add a generated full-text index for scale, and then introduce embeddings for semantic/hybrid retrieval.
