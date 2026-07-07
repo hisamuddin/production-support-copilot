@@ -1,0 +1,86 @@
+[
+  {
+    "id": "lag-01",
+    "tenantId": "10000000-0000-0000-0000-000000000001",
+    "query": "consumer lag",
+    "expectedDocumentIds": ["20000000-0000-0000-0000-000000000001"],
+    "category": "kafka-lag"
+  },
+  {
+    "id": "lag-02",
+    "tenantId": "10000000-0000-0000-0000-000000000001",
+    "query": "reset offsets approval",
+    "expectedDocumentIds": ["20000000-0000-0000-0000-000000000001"],
+    "category": "kafka-lag"
+  },
+  {
+    "id": "lag-03",
+    "tenantId": "10000000-0000-0000-0000-000000000001",
+    "query": "hot partition poison event",
+    "expectedDocumentIds": ["20000000-0000-0000-0000-000000000001"],
+    "category": "kafka-lag"
+  },
+  {
+    "id": "lag-04",
+    "tenantId": "10000000-0000-0000-0000-000000000001",
+    "query": "delayed updates producer healthy",
+    "expectedDocumentIds": ["20000000-0000-0000-0000-000000000001"],
+    "category": "kafka-lag"
+  },
+  {
+    "id": "dlq-01",
+    "tenantId": "10000000-0000-0000-0000-000000000001",
+    "query": "poison event retry",
+    "expectedDocumentIds": ["20000000-0000-0000-0000-000000000002"],
+    "category": "dlq"
+  },
+  {
+    "id": "dlq-02",
+    "tenantId": "10000000-0000-0000-0000-000000000001",
+    "query": "dead letter replay approval",
+    "expectedDocumentIds": ["20000000-0000-0000-0000-000000000002"],
+    "category": "dlq"
+  },
+  {
+    "id": "dlq-03",
+    "tenantId": "10000000-0000-0000-0000-000000000001",
+    "query": "event repeatedly fails processing",
+    "expectedDocumentIds": ["20000000-0000-0000-0000-000000000002"],
+    "category": "dlq"
+  },
+  {
+    "id": "dlq-04",
+    "tenantId": "10000000-0000-0000-0000-000000000001",
+    "query": "redact secrets payload investigation",
+    "expectedDocumentIds": ["20000000-0000-0000-0000-000000000002"],
+    "category": "dlq"
+  },
+  {
+    "id": "booking-01",
+    "tenantId": "10000000-0000-0000-0000-000000000001",
+    "query": "booking accepted status missing",
+    "expectedDocumentIds": ["20000000-0000-0000-0000-000000000003"],
+    "category": "booking-delay"
+  },
+  {
+    "id": "booking-02",
+    "tenantId": "10000000-0000-0000-0000-000000000001",
+    "query": "assignment consumer processing errors",
+    "expectedDocumentIds": ["20000000-0000-0000-0000-000000000003"],
+    "category": "booking-delay"
+  },
+  {
+    "id": "booking-03",
+    "tenantId": "10000000-0000-0000-0000-000000000001",
+    "query": "locate booking correlation id",
+    "expectedDocumentIds": ["20000000-0000-0000-0000-000000000003"],
+    "category": "booking-delay"
+  },
+  {
+    "id": "booking-04",
+    "tenantId": "10000000-0000-0000-0000-000000000001",
+    "query": "tracking notification status delayed",
+    "expectedDocumentIds": ["20000000-0000-0000-0000-000000000003"],
+    "category": "booking-delay"
+  }
+]

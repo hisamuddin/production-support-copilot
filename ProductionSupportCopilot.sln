@@ -19,6 +19,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProductionSupportCopilot.Un
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProductionSupportCopilot.IntegrationTests", "tests\ProductionSupportCopilot.IntegrationTests\ProductionSupportCopilot.IntegrationTests.csproj", "{9E58C9B7-1A00-447C-914B-1E966F713A70}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{80E710DE-CFF8-45D0-BE25-7558D378B977}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProductionSupportCopilot.Evaluation", "tools\ProductionSupportCopilot.Evaluation\ProductionSupportCopilot.Evaluation.csproj", "{E79E3F81-7E3B-4D7D-B91D-F2A690FACC1D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -52,6 +56,10 @@ Global
 		{9E58C9B7-1A00-447C-914B-1E966F713A70}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9E58C9B7-1A00-447C-914B-1E966F713A70}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9E58C9B7-1A00-447C-914B-1E966F713A70}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E79E3F81-7E3B-4D7D-B91D-F2A690FACC1D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E79E3F81-7E3B-4D7D-B91D-F2A690FACC1D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E79E3F81-7E3B-4D7D-B91D-F2A690FACC1D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E79E3F81-7E3B-4D7D-B91D-F2A690FACC1D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{6D831B65-840C-4746-97F3-50F64431B239} = {35A7A383-7271-4870-9208-21FF473E675C}
@@ -60,5 +68,6 @@ Global
 		{0B4BEF25-D648-4CF2-B473-3F60A3CF6782} = {35A7A383-7271-4870-9208-21FF473E675C}
 		{F211A15D-E89F-4E94-9C80-C6C5FE0B20A9} = {AE9A0F63-A850-4E0C-8A55-0241638A3A7F}
 		{9E58C9B7-1A00-447C-914B-1E966F713A70} = {AE9A0F63-A850-4E0C-8A55-0241638A3A7F}
+		{E79E3F81-7E3B-4D7D-B91D-F2A690FACC1D} = {80E710DE-CFF8-45D0-BE25-7558D378B977}
 	EndGlobalSection
 EndGlobal

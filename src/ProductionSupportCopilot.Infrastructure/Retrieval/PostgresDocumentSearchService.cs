@@ -26,12 +26,12 @@ public sealed class PostgresDocumentSearchService(SupportCopilotDbContext dbCont
                 c."Sequence" AS sequence,
                 c."Content" AS content,
                 ts_rank_cd(
-                    to_tsvector('english', c."Content"),
+                    c."SearchVector",
                     plainto_tsquery('english', @query)) AS score
             FROM document_chunks AS c
             INNER JOIN documents AS d ON d."Id" = c."DocumentId"
             WHERE c."TenantId" = @tenant_id
-              AND to_tsvector('english', c."Content") @@ plainto_tsquery('english', @query)
+              AND c."SearchVector" @@ plainto_tsquery('english', @query)
             ORDER BY score DESC, c."DocumentId", c."Sequence"
             LIMIT @limit;
             """;

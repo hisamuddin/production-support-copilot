@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using NpgsqlTypes;
 using ProductionSupportCopilot.Infrastructure.Persistence;
 
 #nullable disable
@@ -17,7 +18,7 @@ namespace ProductionSupportCopilot.Infrastructure.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.28")
+                .HasAnnotation("ProductVersion", "8.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "vector");
@@ -42,6 +43,11 @@ namespace ProductionSupportCopilot.Infrastructure.Persistence.Migrations
                     b.Property<int>("EndOffset")
                         .HasColumnType("integer");
 
+                    b.Property<NpgsqlTsVector>("SearchVector")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("tsvector")
+                        .HasComputedColumnSql("to_tsvector('english'::regconfig, COALESCE(\"Content\", ''::text))", true);
+
                     b.Property<int>("Sequence")
                         .HasColumnType("integer");
 
@@ -54,6 +60,10 @@ namespace ProductionSupportCopilot.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DocumentId");
+
+                    b.HasIndex("SearchVector");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "GIN");
 
                     b.HasIndex("TenantId", "DocumentId", "DocumentVersion", "Sequence")
                         .IsUnique();

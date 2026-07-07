@@ -1064,3 +1064,173 @@ Current query har row par `to_tsvector` calculate karti hai. Demo corpus ke liye
 5. Baseline latency/query plan record karo.
 6. Embeddings add karke semantic retrieval compare karo.
 7. Lexical + semantic results ko hybrid rank fusion se combine karo.
+
+---
+
+## 23. Retrieval evaluation and GIN index
+
+Date: 8 July 2026
+
+### Golden dataset kya hai?
+
+Golden dataset manually labelled examples ka versioned set hai. Har case mein:
+
+- unique case ID
+- tenant ID
+- user query
+- expected relevant document ID(s)
+- category
+
+Current dataset mein 12 questions hain across three categories:
+
+- Kafka consumer lag
+- poison event / DLQ
+- booking status delay
+
+Dataset file:
+
+`evaluation/golden-retrieval.json`
+
+Why useful?
+
+> Search quality ko sirf do convenient demo questions se judge nahi karna chahiye. Same labelled dataset har algorithm, prompt, embedding model, or index version ke against run hota hai, so regression measurable hoti hai.
+
+### Metrics
+
+#### Recall@1
+
+Expected relevant document first result par kitne percent questions mein mila.
+
+```text
+Recall@1 = successful top-result questions / total questions
+```
+
+#### Recall@5
+
+Expected document first five results ke andar kitne percent questions mein mila.
+
+```text
+Recall@5 = relevant document in top 5 / total questions
+```
+
+#### MRR - Mean Reciprocal Rank
+
+First relevant result kitni jaldi aaya, usse reward karta hai:
+
+```text
+rank 1 -> reciprocal rank 1.0
+rank 2 -> 0.5
+rank 3 -> 0.333
+not found -> 0
+```
+
+All questions ka average MRR hota hai.
+
+### Current lexical baseline
+
+```text
+Cases:      12
+Recall@1:   91.7%
+Recall@5:   91.7%
+MRR:        0.917
+Quality gate: Recall@5 >= 70% - PASS
+```
+
+Failed query:
+
+```text
+booking accepted status missing
+```
+
+Is failure ko dataset se remove ya query ko artificially easy nahi banaya. Lexical search exact/normalized terms par depend karti hai. Later semantic retrieval ko prove karna hai ki woh meaning-based phrasing recover kar sakti hai.
+
+### Evaluation CLI
+
+Separate console tool create hua:
+
+`tools/ProductionSupportCopilot.Evaluation`
+
+Run:
+
+```powershell
+dotnet run --project tools/ProductionSupportCopilot.Evaluation
+```
+
+Tool:
+
+1. JSON dataset load karta hai.
+2. Har query database retrieval service ko bhejta hai.
+3. Expected document ka rank find karta hai.
+4. Recall@1, Recall@5, and MRR calculate karta hai.
+5. Recall@5 70% se below ho toh non-zero exit code return karta hai.
+
+Non-zero exit code later CI quality gate ban sakta hai.
+
+### Stored search vector
+
+Earlier query har request par execute karti thi:
+
+```sql
+to_tsvector('english', "Content")
+```
+
+Ab database stored generated column maintain karta hai:
+
+```text
+SearchVector (tsvector)
+```
+
+Document content insert/update hone par PostgreSQL automatically searchable representation generate karta hai.
+
+Benefits:
+
+- repeated vector computation avoid hoti hai
+- consistent search configuration
+- GIN indexing possible hoti hai
+
+### GIN index
+
+Migration added:
+
+`AddFullTextSearchIndex`
+
+Verified database index:
+
+```text
+IX_document_chunks_SearchVector
+USING gin (SearchVector)
+```
+
+GIN inverted index words/lexemes se matching rows locate karta hai. Large text corpus mein full table scan avoid karne mein help karta hai.
+
+### Query plan result
+
+Current database mein only 3 chunks hain, therefore PostgreSQL planner ne sequential scan choose kiya. Actual measured execution approximately 0.17 ms thi.
+
+Yeh GIN failure nahi hai. Tiny table mein sequential scan index traversal se cheaper hota hai. Large corpus/load test par planner ka behavior dubara measure karenge.
+
+Important interview lesson:
+
+> Index present hone ka matlab har query index use karegi nahi. Cost-based optimizer table size, selectivity, statistics, and estimated cost dekhkar plan choose karta hai.
+
+### Optimization safety check
+
+GIN/generated-vector change ke baad same golden dataset rerun hua:
+
+```text
+Recall@1: 91.7%
+Recall@5: 91.7%
+MRR:      0.917
+```
+
+Performance-oriented schema change ne retrieval ranking quality regress nahi ki.
+
+### Next step
+
+1. Embedding provider abstraction
+2. Chunk embedding column in pgvector
+3. Deterministic/local or hosted embedding generation
+4. Semantic top-K retrieval
+5. Same golden dataset par semantic metrics
+6. Lexical + semantic reciprocal-rank fusion
+7. Hybrid result comparison and failure analysis

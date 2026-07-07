@@ -61,6 +61,31 @@ http://localhost:5051/swagger
 dotnet test ProductionSupportCopilot.sln
 ```
 
+## Evaluate lexical retrieval
+
+With PostgreSQL running and development data seeded:
+
+```powershell
+dotnet run --project tools/ProductionSupportCopilot.Evaluation
+```
+
+The evaluator runs the versioned dataset at `evaluation/golden-retrieval.json` and reports Recall@1, Recall@5, and mean reciprocal rank (MRR). Current lexical baseline on 12 questions:
+
+```text
+Recall@1: 91.7%
+Recall@5: 91.7%
+MRR:      0.917
+```
+
+One semantic-style query intentionally fails lexical retrieval. It will be used to measure whether embeddings improve recall instead of adding semantic search without evidence.
+
+To inspect the full-text indexes and query plan:
+
+```powershell
+Get-Content -Raw scripts/sql/verify-full-text-index.sql |
+  docker exec -i support-copilot-postgres psql -U support_copilot -d support_copilot
+```
+
 ## Design
 
 - [Product requirements](docs/product-requirements.md)
@@ -69,4 +94,4 @@ dotnet test ProductionSupportCopilot.sln
 
 ## Next milestone
 
-PostgreSQL/pgvector, EF Core migrations, deterministic development seeding, and tenant-filtered lexical retrieval are working. Next, build a golden retrieval dataset, measure Recall@K, add a generated full-text index for scale, and then introduce embeddings for semantic/hybrid retrieval.
+PostgreSQL/pgvector, EF Core migrations, deterministic development seeding, tenant-filtered lexical retrieval, a generated search vector, GIN index, and a measurable evaluation baseline are working. Next, introduce embeddings, measure semantic retrieval against the same dataset, and combine lexical plus semantic results through hybrid rank fusion.
