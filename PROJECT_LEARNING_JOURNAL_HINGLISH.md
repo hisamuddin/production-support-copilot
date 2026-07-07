@@ -933,3 +933,134 @@ Learning:
 4. Database context and entity mappings create karo.
 5. First migration apply karo.
 6. Three mock runbooks ingest and chunk karo.
+
+---
+
+## 22. Phase 1 database and lexical retrieval working
+
+Date: 7 July 2026
+
+### PostgreSQL + pgvector
+
+- Docker Desktop engine verified.
+- Is machine par command `docker compose` nahi, standalone `docker-compose` available hai.
+- `pgvector/pgvector:pg16` image pull hui.
+- PostgreSQL container healthy hua and port 5432 par connections accept kiye.
+- Database migration ne `vector` extension enable ki.
+
+Verified tables:
+
+- `tenants`
+- `documents`
+- `document_chunks`
+- `ingestion_jobs`
+- `__EFMigrationsHistory`
+
+### EF Core persistence
+
+Added:
+
+- `SupportCopilotDbContext`
+- separate entity configurations
+- Npgsql PostgreSQL provider
+- design-time context factory
+- initial migration
+- local `dotnet-ef` tool manifest
+
+Why migrations?
+
+> Migration schema evolution ko versioned and code-reviewable banati hai. `EnsureCreated` prototype ke liye easy hai but long-running production schema history ke liye weak hai.
+
+### Verification lesson: command output ko blindly trust nahi kiya
+
+First `database update --no-build` ne “up to date” bola, but independent database inspection mein sirf empty migration-history table mili. Cause: migration source generate hone ke baad assembly rebuild nahi hui thi. Infrastructure rebuild + update ke baad actual tables and vector extension verify hue.
+
+Learning:
+
+> Tool success message evidence ka ek part hai. Database state, HTTP response, metrics, or artifact ko independently verify karo.
+
+### Package version conflict
+
+- Npgsql EF provider `8.0.11` use kar raha tha.
+- EF Design package initially `8.0.28` tha.
+- Runtime assemblies conflict hue even though both major version 8 the.
+- Design package ko `8.0.11` align karne ke baad clean build hua.
+
+Learning:
+
+> Same major version compatibility guarantee nahi hoti. Provider/runtime package graph ko compatible patch versions par align karo and clean build verify karo.
+
+### Development seeding
+
+Three embedded runbooks added:
+
+1. Kafka Consumer Lag Troubleshooting
+2. Poison Event and DLQ Recovery
+3. Booking Status Update Delay Investigation
+
+Seeding properties:
+
+- fixed demo tenant/document IDs
+- deterministic chunk IDs
+- existing document check, so repeated startup duplicates create nahi karta
+- Development environment only
+- Testing and production automatic seed nahi karte
+
+Verified database counts:
+
+- tenants: 1
+- documents: 3
+- chunks: 3
+
+Each runbook abhi one chunk hai because content 1,200-character threshold se chhota hai.
+
+### Lexical retrieval
+
+Endpoint:
+
+```http
+GET /api/v1/retrieval/search?tenantId=10000000-0000-0000-0000-000000000001&query=consumer%20lag&limit=5
+```
+
+PostgreSQL functions:
+
+- `to_tsvector('english', content)` document text ko searchable lexemes mein convert karta hai.
+- `plainto_tsquery('english', query)` user text ko safe full-text query banata hai.
+- `@@` document and query match check karta hai.
+- `ts_rank_cd` matching result ka relevance score deta hai.
+
+Query parameterized hai; raw user query SQL string mein concatenate nahi hoti. Tenant ID SQL `WHERE` condition mein apply hota hai, model prompt ke andar nahi.
+
+Test query `consumer lag` result order:
+
+1. Kafka Consumer Lag Troubleshooting
+2. Booking Status Update Delay Investigation
+
+Response citation-ready fields deta hai:
+
+- document ID
+- chunk ID
+- document title
+- sequence
+- content
+- lexical score
+
+### Security reasoning
+
+Tenant filtering retrieval layer mein kyun?
+
+> Unauthorized chunk agar retrieval se model context tak pahunch gaya, prompt instruction se data reliably hide nahi hota. Authorization data access/query layer par enforce honi chahiye, generation layer par nahi.
+
+### Current limitation
+
+Current query har row par `to_tsvector` calculate karti hai. Demo corpus ke liye fine hai, large dataset par expensive hoga. Next schema iteration mein generated/stored search vector plus GIN index add karenge and query plan compare karenge.
+
+### Next exact learning step
+
+1. Twenty golden retrieval questions create karo.
+2. Expected relevant document IDs label karo.
+3. Recall@1 and Recall@5 calculate karo.
+4. Full-text generated column + GIN index add karo.
+5. Baseline latency/query plan record karo.
+6. Embeddings add karke semantic retrieval compare karo.
+7. Lexical + semantic results ko hybrid rank fusion se combine karo.
