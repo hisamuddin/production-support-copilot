@@ -1,0 +1,32 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+          cache: true
+          cache-dependency-path: '**/*.csproj'
+
+      - name: Restore
+        run: dotnet restore ProductionSupportCopilot.sln --configfile NuGet.Config
+
+      - name: Build
+        run: dotnet build ProductionSupportCopilot.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test ProductionSupportCopilot.sln --configuration Release --no-build --no-restore
