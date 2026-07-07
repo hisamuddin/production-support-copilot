@@ -40,6 +40,12 @@ Content-Type: application/json
 
 The current response intentionally has `isGrounded: false`, no citations, and status `retrieval_not_configured`.
 
+In the Development environment, Swagger UI is available at:
+
+```text
+http://localhost:5051/swagger
+```
+
 ## Test
 
 ```powershell
@@ -50,7 +56,8 @@ dotnet test ProductionSupportCopilot.sln
 
 - [Product requirements](docs/product-requirements.md)
 - [ADR 0001: Modular monolith](docs/decisions/0001-modular-monolith.md)
+- [Hinglish learning and decision journal](PROJECT_LEARNING_JOURNAL_HINGLISH.md)
 
 ## Next milestone
 
-Add PostgreSQL, tenant/document/chunk models, deterministic chunking, seed runbooks, and lexical retrieval. The API will return ranked passages with citations before an LLM is allowed to generate an answer.
+Tenant/document/chunk models, deterministic chunking, and the PostgreSQL Compose definition are now present. Next, start Docker Desktop, connect EF Core to PostgreSQL, seed runbooks, and implement lexical retrieval. The API will return ranked passages with citations before an LLM is allowed to generate an answer.

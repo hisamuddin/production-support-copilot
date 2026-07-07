@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ProductionSupportCopilot.Application\ProductionSupportCopilot.Application.csproj" />
+    <ProjectReference Include="..\..\src\ProductionSupportCopilot.Infrastructure\ProductionSupportCopilot.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
