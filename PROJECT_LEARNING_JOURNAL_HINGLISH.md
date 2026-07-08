@@ -1234,3 +1234,172 @@ Performance-oriented schema change ne retrieval ranking quality regress nahi ki.
 5. Same golden dataset par semantic metrics
 6. Lexical + semantic reciprocal-rank fusion
 7. Hybrid result comparison and failure analysis
+
+---
+
+## 24. Embeddings, semantic search, and hybrid retrieval
+
+Date: 8 July 2026
+
+### Embedding kya hai?
+
+Embedding text ka fixed-length numerical representation hai. Similar meaning wale texts vector space mein generally paas hote hain, even jab exact keywords different hon.
+
+Example:
+
+```text
+"booking accepted but status missing"
+"accepted booking update is not visible"
+```
+
+Lexical words fully match nahi karte, but meaning similar hai. Embedding model semantic similarity capture kar sakta hai.
+
+### Selected model
+
+```text
+sentence-transformers/all-MiniLM-L6-v2
+```
+
+Properties:
+
+- local CPU inference
+- 384 dimensions
+- normalized output vectors
+- no hosted API key or per-request charge
+- suitable for learning and small demo corpus
+
+This is not automatically the best production model. Real selection multilingual needs, domain, latency, accuracy, licensing, and deployment cost par depend karega.
+
+### Python service boundary
+
+Python FastAPI service only embedding generation own karti hai:
+
+```http
+POST /v1/embeddings
+{
+  "inputs": ["text one", "text two"]
+}
+```
+
+Response:
+
+```text
+model + dimensions + ordered vectors
+```
+
+.NET still owns:
+
+- API contract
+- tenant authorization
+- ingestion workflow
+- persistence
+- retrieval
+- ranking/fusion
+- future LLM orchestration
+
+Why?
+
+> Python ka AI ecosystem use karo where useful, but product ownership and security boundaries unnecessarily split mat karo.
+
+### Docker learning
+
+Initial dependency resolution latest PyTorch ke saath CUDA toolkit pull karne laga. CPU-only service ke liye wasteful tha. Dockerfile mein explicit CPU wheel pin ki:
+
+```text
+torch 2.7.1+cpu
+```
+
+Lesson:
+
+> ML package defaults hardware assumptions introduce kar sakte hain. Image size, architecture, and runtime cost inspect karo.
+
+### Embedding service verification
+
+```text
+Model: sentence-transformers/all-MiniLM-L6-v2
+Dimensions: 384
+Warm single-query latency: approximately 1.7 seconds on local CPU
+```
+
+First request/model startup slower tha because model download and warm-up happened.
+
+### pgvector storage
+
+EF migration added nullable column:
+
+```text
+document_chunks.Embedding vector(384)
+```
+
+Development startup:
+
+1. Missing embeddings wale chunks fetch karta hai.
+2. Maximum 32 texts ka batch embedding service ko bhejta hai.
+3. Response dimension 384 validate karta hai.
+4. Vectors pgvector column mein save karta hai.
+5. Existing embeddings next startup par skip karta hai.
+
+This prevents unnecessary repeated model calls.
+
+### Semantic query
+
+1. User query embedding generate hoti hai.
+2. Same tenant ke embedded chunks filter hote hain.
+3. pgvector cosine distance calculate karta hai using `<=>`.
+4. Similarity score `1 - cosine distance` return hota hai.
+5. Nearest chunks top-K order mein return hote hain.
+
+Failed lexical query:
+
+```text
+booking accepted status missing
+```
+
+Results:
+
+```text
+Lexical: 0 results
+Semantic rank 1: Booking Status Update Delay Investigation
+Similarity: approximately 0.4585
+```
+
+Similarity 0.4585 probability or confidence percentage nahi hai. It is model/vector similarity used for relative ranking.
+
+### Full dataset comparison
+
+| Mode | Recall@1 | Recall@5 | MRR |
+|---|---:|---:|---:|
+| Lexical | 91.7% | 91.7% | 0.917 |
+| Semantic | 83.3% | 100% | 0.903 |
+| Hybrid RRF | 100% | 100% | 1.000 |
+
+Interpretation:
+
+- Lexical exact technical terms par precise hai.
+- Semantic paraphrase recover karta hai, but top order kuch questions mein worse hua.
+- Neither method universally superior hai.
+
+### Reciprocal Rank Fusion
+
+Lexical score and cosine similarity directly add nahi kiye because their scales/meaning different hain.
+
+RRF rank positions combine karta hai:
+
+```text
+contribution = 1 / (60 + rank)
+```
+
+Candidate dono lists mein high rank par ho toh contributions add hoti hain. This combines evidence without score normalization assumptions.
+
+Current implementation lexical and semantic calls sequentially run karti hai because both same scoped EF DbContext share karte hain; EF DbContext concurrent operations support nahi karta.
+
+### Important limitation
+
+100% metric sirf 3 documents and 12 labelled questions par hai. Production claim nahi hai. Next:
+
+- more runbooks/tickets
+- ambiguous and negative questions
+- cross-tenant tests
+- stale/conflicting documents
+- retrieval latency/token/cost telemetry
+- larger dataset and regression gates

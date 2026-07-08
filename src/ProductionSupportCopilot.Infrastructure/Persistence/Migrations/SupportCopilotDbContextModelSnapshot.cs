@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
+using Pgvector;
 using ProductionSupportCopilot.Infrastructure.Persistence;
 
 #nullable disable
@@ -39,6 +40,9 @@ namespace ProductionSupportCopilot.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("DocumentVersion")
                         .HasColumnType("integer");
+
+                    b.Property<Vector>("Embedding")
+                        .HasColumnType("vector(384)");
 
                     b.Property<int>("EndOffset")
                         .HasColumnType("integer");

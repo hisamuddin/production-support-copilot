@@ -3,6 +3,7 @@ using ProductionSupportCopilot.Api.Middleware;
 using ProductionSupportCopilot.Application.Copilot;
 using ProductionSupportCopilot.Application.Retrieval;
 using ProductionSupportCopilot.Infrastructure;
+using ProductionSupportCopilot.Infrastructure.Embeddings;
 using ProductionSupportCopilot.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,6 +31,7 @@ if (app.Environment.IsDevelopment()
     var dbContext = scope.ServiceProvider.GetRequiredService<SupportCopilotDbContext>();
     await dbContext.Database.MigrateAsync();
     await scope.ServiceProvider.GetRequiredService<DevelopmentDataSeeder>().SeedAsync();
+    await scope.ServiceProvider.GetRequiredService<DocumentEmbeddingBackfillService>().BackfillMissingAsync();
 }
 
 if (app.Environment.IsDevelopment())
@@ -74,6 +76,70 @@ app.MapGet("/api/v1/retrieval/search", async (
     return Results.Ok(new { query, results });
 })
 .WithName("SearchDocuments")
+.WithTags("Retrieval")
+.Produces(StatusCodes.Status200OK)
+.ProducesValidationProblem();
+
+app.MapGet("/api/v1/retrieval/semantic-search", async (
+    string tenantId,
+    string query,
+    int? limit,
+    ISemanticDocumentSearchService searchService,
+    CancellationToken cancellationToken) =>
+{
+    if (!Guid.TryParse(tenantId, out var parsedTenantId) || parsedTenantId == Guid.Empty)
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            [nameof(tenantId)] = ["A valid tenant ID is required."]
+        });
+    }
+
+    if (string.IsNullOrWhiteSpace(query))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            [nameof(query)] = ["Search query is required."]
+        });
+    }
+
+    var requestedLimit = Math.Clamp(limit ?? 5, 1, 20);
+    var results = await searchService.SearchAsync(parsedTenantId, query, requestedLimit, cancellationToken);
+    return Results.Ok(new { query, mode = "semantic", results });
+})
+.WithName("SearchDocumentsSemantically")
+.WithTags("Retrieval")
+.Produces(StatusCodes.Status200OK)
+.ProducesValidationProblem();
+
+app.MapGet("/api/v1/retrieval/hybrid-search", async (
+    string tenantId,
+    string query,
+    int? limit,
+    IHybridDocumentSearchService searchService,
+    CancellationToken cancellationToken) =>
+{
+    if (!Guid.TryParse(tenantId, out var parsedTenantId) || parsedTenantId == Guid.Empty)
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            [nameof(tenantId)] = ["A valid tenant ID is required."]
+        });
+    }
+
+    if (string.IsNullOrWhiteSpace(query))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            [nameof(query)] = ["Search query is required."]
+        });
+    }
+
+    var requestedLimit = Math.Clamp(limit ?? 5, 1, 20);
+    var results = await searchService.SearchAsync(parsedTenantId, query, requestedLimit, cancellationToken);
+    return Results.Ok(new { query, mode = "hybrid_rrf", results });
+})
+.WithName("SearchDocumentsWithHybridRetrieval")
 .WithTags("Retrieval")
 .Produces(StatusCodes.Status200OK)
 .ProducesValidationProblem();

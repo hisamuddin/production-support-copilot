@@ -11,7 +11,7 @@ public sealed class SupportCopilotDbContextFactory : IDesignTimeDbContextFactory
             ?? "Host=localhost;Port=5432;Database=support_copilot;Username=support_copilot;Password=local_development_only";
 
         var options = new DbContextOptionsBuilder<SupportCopilotDbContext>()
-            .UseNpgsql(connectionString)
+            .UseNpgsql(connectionString, postgres => postgres.UseVector())
             .Options;
 
         return new SupportCopilotDbContext(options);

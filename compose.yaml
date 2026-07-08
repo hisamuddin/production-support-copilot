@@ -16,5 +16,28 @@ services:
       timeout: 5s
       retries: 10
 
+  embeddings:
+    build:
+      context: ./services/embeddings
+    container_name: support-copilot-embeddings
+    environment:
+      MODEL_NAME: sentence-transformers/all-MiniLM-L6-v2
+      HF_HOME: /models/huggingface
+    ports:
+      - "8001:8000"
+    volumes:
+      - support-copilot-huggingface-cache:/models/huggingface
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 90s
+
 volumes:
   support-copilot-postgres-data:
+  support-copilot-huggingface-cache:

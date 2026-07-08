@@ -1,5 +1,8 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Pgvector.EntityFrameworkCore;
+using ProductionSupportCopilot.Application.Retrieval;
+using ProductionSupportCopilot.Infrastructure.Embeddings;
 using ProductionSupportCopilot.Infrastructure.Persistence;
 using ProductionSupportCopilot.Infrastructure.Retrieval;
 
@@ -8,6 +11,16 @@ const string defaultConnectionString =
 
 var connectionString = Environment.GetEnvironmentVariable("SUPPORT_COPILOT_DB")
     ?? defaultConnectionString;
+var embeddingServiceUrl = Environment.GetEnvironmentVariable("SUPPORT_COPILOT_EMBEDDINGS")
+    ?? "http://localhost:8001/";
+var mode = args.FirstOrDefault()?.ToLowerInvariant() ?? "lexical";
+
+if (mode is not ("lexical" or "semantic"))
+{
+    Console.Error.WriteLine("Usage: dotnet run --project tools/ProductionSupportCopilot.Evaluation -- [lexical|semantic]");
+    return 2;
+}
+
 var datasetPath = Path.Combine(AppContext.BaseDirectory, "golden-retrieval.json");
 
 var json = await File.ReadAllTextAsync(datasetPath);
@@ -17,17 +30,29 @@ var dataset = JsonSerializer.Deserialize<List<GoldenRetrievalCase>>(json, new Js
 }) ?? throw new InvalidOperationException("Golden retrieval dataset is empty or invalid.");
 
 var options = new DbContextOptionsBuilder<SupportCopilotDbContext>()
-    .UseNpgsql(connectionString)
+    .UseNpgsql(connectionString, postgres => postgres.UseVector())
     .Options;
 
 await using var dbContext = new SupportCopilotDbContext(options);
-var searchService = new PostgresDocumentSearchService(dbContext);
+var lexicalSearch = new PostgresDocumentSearchService(dbContext);
+using var embeddingHttpClient = new HttpClient
+{
+    BaseAddress = new Uri(embeddingServiceUrl),
+    Timeout = TimeSpan.FromSeconds(30)
+};
+var embeddingProvider = new HttpEmbeddingProvider(embeddingHttpClient);
+var semanticSearch = new PostgresSemanticDocumentSearchService(dbContext, embeddingProvider);
+
+Task<IReadOnlyList<DocumentSearchResult>> SearchAsync(GoldenRetrievalCase testCase) =>
+    mode == "semantic"
+        ? semanticSearch.SearchAsync(testCase.TenantId, testCase.Query, 5)
+        : lexicalSearch.SearchAsync(testCase.TenantId, testCase.Query, 5);
 
 var top1Hits = 0;
 var top5Hits = 0;
 var reciprocalRankTotal = 0d;
 
-Console.WriteLine("Production Support Copilot - Lexical Retrieval Evaluation");
+Console.WriteLine("Production Support Copilot - {0} Retrieval Evaluation", char.ToUpperInvariant(mode[0]) + mode[1..]);
 Console.WriteLine(new string('-', 94));
 Console.WriteLine("{0,-3} {1,-42} {2,-7} {3,-7} {4}", "#", "Query", "Top@1", "Top@5", "First relevant rank");
 Console.WriteLine(new string('-', 94));
@@ -35,7 +60,7 @@ Console.WriteLine(new string('-', 94));
 for (var index = 0; index < dataset.Count; index++)
 {
     var testCase = dataset[index];
-    var results = await searchService.SearchAsync(testCase.TenantId, testCase.Query, 5);
+    var results = await SearchAsync(testCase);
     var rank = results
         .Select((result, resultIndex) => new { result.DocumentId, Rank = resultIndex + 1 })
         .Where(item => testCase.ExpectedDocumentIds.Contains(item.DocumentId))

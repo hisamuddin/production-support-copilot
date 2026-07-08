@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using NpgsqlTypes;
+using Pgvector;
 using ProductionSupportCopilot.Domain.Documents;
 
 namespace ProductionSupportCopilot.Infrastructure.Persistence.Configurations;
@@ -18,6 +19,9 @@ internal sealed class DocumentChunkConfiguration : IEntityTypeConfiguration<Docu
             .HasComputedColumnSql(
                 "to_tsvector('english'::regconfig, COALESCE(\"Content\", ''::text))",
                 stored: true);
+
+        builder.Property<Vector?>("Embedding")
+            .HasColumnType("vector(384)");
 
         builder.HasIndex("SearchVector").HasMethod("GIN");
         builder.HasIndex(chunk => new { chunk.TenantId, chunk.DocumentId, chunk.DocumentVersion, chunk.Sequence }).IsUnique();

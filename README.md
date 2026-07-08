@@ -20,7 +20,7 @@ No LLM is connected yet. This is intentional: retrieval and grounding will be me
 ## Run locally
 
 ```powershell
-docker-compose -f compose.yaml up -d postgres
+docker-compose -f compose.yaml up -d postgres embeddings
 dotnet restore ProductionSupportCopilot.sln --configfile NuGet.Config
 dotnet run --project src/ProductionSupportCopilot.Api
 ```
@@ -49,6 +49,16 @@ GET /api/v1/retrieval/search?tenantId=10000000-0000-0000-0000-000000000001&query
 
 In Development, database migrations and three demo runbooks are initialized idempotently. Search results include document/chunk citation metadata and PostgreSQL full-text ranking scores. No LLM is used yet.
 
+Semantic and hybrid retrieval are available at:
+
+```http
+GET /api/v1/retrieval/semantic-search?tenantId=10000000-0000-0000-0000-000000000001&query=booking%20accepted%20status%20missing&limit=5
+
+GET /api/v1/retrieval/hybrid-search?tenantId=10000000-0000-0000-0000-000000000001&query=booking%20accepted%20status%20missing&limit=5
+```
+
+The local Python service uses `sentence-transformers/all-MiniLM-L6-v2` to produce normalized 384-dimensional vectors. PostgreSQL stores them in `vector(384)`. Hybrid retrieval combines lexical and semantic rankings through Reciprocal Rank Fusion (RRF).
+
 In the Development environment, Swagger UI is available at:
 
 ```text
@@ -66,7 +76,8 @@ dotnet test ProductionSupportCopilot.sln
 With PostgreSQL running and development data seeded:
 
 ```powershell
-dotnet run --project tools/ProductionSupportCopilot.Evaluation
+dotnet run --project tools/ProductionSupportCopilot.Evaluation -- lexical
+dotnet run --project tools/ProductionSupportCopilot.Evaluation -- semantic
 ```
 
 The evaluator runs the versioned dataset at `evaluation/golden-retrieval.json` and reports Recall@1, Recall@5, and mean reciprocal rank (MRR). Current lexical baseline on 12 questions:
@@ -78,6 +89,16 @@ MRR:      0.917
 ```
 
 One semantic-style query intentionally fails lexical retrieval. It will be used to measure whether embeddings improve recall instead of adding semantic search without evidence.
+
+Current comparison on the small 12-question dataset:
+
+| Mode | Recall@1 | Recall@5 | MRR |
+|---|---:|---:|---:|
+| Lexical | 91.7% | 91.7% | 0.917 |
+| Semantic | 83.3% | 100% | 0.903 |
+| Hybrid RRF | 100% | 100% | 1.000 |
+
+These figures are a development baseline, not a production-quality claim; the corpus and evaluation set must grow.
 
 To inspect the full-text indexes and query plan:
 
@@ -94,4 +115,4 @@ Get-Content -Raw scripts/sql/verify-full-text-index.sql |
 
 ## Next milestone
 
-PostgreSQL/pgvector, EF Core migrations, deterministic development seeding, tenant-filtered lexical retrieval, a generated search vector, GIN index, and a measurable evaluation baseline are working. Next, introduce embeddings, measure semantic retrieval against the same dataset, and combine lexical plus semantic results through hybrid rank fusion.
+PostgreSQL/pgvector, lexical retrieval, local MiniLM embeddings, semantic search, hybrid Reciprocal Rank Fusion, and a measurable comparison baseline are working. Next, expand the corpus/evaluation set, add retrieval telemetry, and connect grounded answer generation to hybrid evidence.

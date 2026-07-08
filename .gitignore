@@ -6,6 +6,7 @@
 .local-appdata/
 .dotnet-home/
 TestResults/
+tmp/
 *.user
 *.suo
 .env
