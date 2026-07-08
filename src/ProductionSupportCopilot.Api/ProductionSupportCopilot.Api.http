@@ -1,6 +1,11 @@
 @ProductionSupportCopilot.Api_HostAddress = http://localhost:5051
 
-GET {{ProductionSupportCopilot.Api_HostAddress}}/weatherforecast/
+GET {{ProductionSupportCopilot.Api_HostAddress}}/health
 Accept: application/json
 
 ###
+
+POST {{ProductionSupportCopilot.Api_HostAddress}}/api/v1/auth/demo-token
+Content-Type: application/json
+
+{"userId":"learner","tenantId":"demo-tenant","requestedRoles":["support","operator"]}
