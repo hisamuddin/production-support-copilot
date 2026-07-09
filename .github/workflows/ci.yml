@@ -2,7 +2,7 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
 
 permissions:
@@ -30,3 +30,9 @@ jobs:
 
       - name: Test
         run: dotnet test ProductionSupportCopilot.sln --configuration Release --no-build --no-restore
+
+      - name: Validate Python
+        run: python -m py_compile services/ai/app.py evaluation/evaluate.py scripts/generate_handbook_pdf.py
+
+      - name: Validate Compose
+        run: docker compose config --quiet

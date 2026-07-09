@@ -10,3 +10,7 @@ TestResults/
 *.suo
 .env
 appsettings.Local.json
+tmp/
+.docker-config/
+.aspnet-data-protection-keys/
+**/__pycache__/

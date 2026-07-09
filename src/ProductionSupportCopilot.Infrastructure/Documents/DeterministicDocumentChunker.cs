@@ -4,31 +4,31 @@ namespace ProductionSupportCopilot.Infrastructure.Documents;
 
 public sealed class DeterministicDocumentChunker : IDocumentChunker
 {
-    public IReadOnlyList<TextChunk> Chunk(string content, ChunkingOptions? options = null)
+    public IReadOnlyList<ChunkDraft> Chunk(string content, int targetCharacters = 1200, int overlapCharacters = 180)
     {
         if (string.IsNullOrWhiteSpace(content))
         {
             return [];
         }
 
-        options ??= new ChunkingOptions();
-        options.Validate();
+        if (targetCharacters < 200) throw new ArgumentOutOfRangeException(nameof(targetCharacters));
+        if (overlapCharacters < 0 || overlapCharacters >= targetCharacters) throw new ArgumentOutOfRangeException(nameof(overlapCharacters));
 
         var normalized = NormalizeLineEndings(content).Trim();
-        var chunks = new List<TextChunk>();
+        var chunks = new List<ChunkDraft>();
         var start = 0;
 
         while (start < normalized.Length)
         {
             var remaining = normalized.Length - start;
-            var desiredEnd = start + Math.Min(options.MaximumCharacters, remaining);
+            var desiredEnd = start + Math.Min(targetCharacters, remaining);
             var end = FindNaturalBoundary(normalized, start, desiredEnd);
 
             var text = normalized[start..end].Trim();
             if (text.Length > 0)
             {
                 var actualStart = normalized.IndexOf(text, start, StringComparison.Ordinal);
-                chunks.Add(new TextChunk(chunks.Count, text, actualStart, actualStart + text.Length));
+                chunks.Add(new ChunkDraft(chunks.Count, text, actualStart, actualStart + text.Length));
             }
 
             if (end >= normalized.Length)
@@ -36,9 +36,8 @@ public sealed class DeterministicDocumentChunker : IDocumentChunker
                 break;
             }
 
-            var nextStart = Math.Max(0, end - options.OverlapCharacters);
+            var nextStart = Math.Max(0, end - overlapCharacters);
             start = MoveToWordBoundary(normalized, nextStart, end);
-
             if (start >= end)
             {
                 start = end;

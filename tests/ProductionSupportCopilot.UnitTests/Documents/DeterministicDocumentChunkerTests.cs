@@ -1,4 +1,3 @@
-using ProductionSupportCopilot.Application.Documents;
 using ProductionSupportCopilot.Infrastructure.Documents;
 
 namespace ProductionSupportCopilot.UnitTests.Documents;
@@ -8,28 +7,29 @@ public sealed class DeterministicDocumentChunkerTests
     private readonly DeterministicDocumentChunker _sut = new();
 
     [Fact]
-    public void Chunk_WithSameInput_ReturnsIdenticalChunks()
+    public void Chunk_LongText_ProducesOrderedOverlappingChunks()
     {
-        const string content = "Booking API troubleshooting. Check the health endpoint first.\n\nThen inspect Kafka consumer lag and recent errors.";
-        var options = new ChunkingOptions(100, 20);
+        var text = string.Join(" ", Enumerable.Repeat(
+            "Booking status consumer lag causes delayed updates.",
+            80));
 
-        var first = _sut.Chunk(content, options);
-        var second = _sut.Chunk(content, options);
+        var result = _sut.Chunk(text, 300, 50);
 
-        Assert.Equal(first, second);
+        Assert.True(result.Count > 2);
+        Assert.Equal(Enumerable.Range(0, result.Count), result.Select(x => x.Ordinal));
+        Assert.True(result[1].StartCharacter < result[0].EndCharacter);
+        Assert.All(result, chunk => Assert.InRange(chunk.Content.Length, 1, 300));
     }
 
     [Fact]
-    public void Chunk_WithLongContent_RespectsMaximumSizeAndPreservesOrder()
+    public void Chunk_SameInput_IsDeterministic()
     {
-        var content = string.Join(" ", Enumerable.Repeat("booking status update delayed because consumer processing is slow.", 20));
-        var options = new ChunkingOptions(180, 30);
+        const string content = "First paragraph.\n\nSecond paragraph with useful recovery instructions.";
 
-        var chunks = _sut.Chunk(content, options);
+        var first = _sut.Chunk(content, 300, 50);
+        var second = _sut.Chunk(content, 300, 50);
 
-        Assert.True(chunks.Count > 1);
-        Assert.All(chunks, chunk => Assert.InRange(chunk.Content.Length, 1, options.MaximumCharacters));
-        Assert.Equal(Enumerable.Range(0, chunks.Count), chunks.Select(chunk => chunk.Sequence));
+        Assert.Equal(first, second);
     }
 
     [Fact]

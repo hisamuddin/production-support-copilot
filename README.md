@@ -1,72 +1,122 @@
 # Production Support Copilot
 
-A production-minded AI support assistant for event-driven .NET services. It will ingest runbooks, technical documents, tickets, and incidents; answer questions with citations; inspect a mock service through controlled tools; draft incident summaries; and require approval for consequential actions.
+A production-minded portfolio project for senior .NET engineers moving into Applied AI Engineering / AI Architecture.
 
-## Current milestone
+The product is a support copilot for event-driven .NET services. It ingests runbooks/tickets, chunks and embeds documents, retrieves tenant-authorized evidence, answers with citations, calls safe mock tools, and pauses consequential actions for human approval.
 
-Phase 0 vertical skeleton:
+## What is implemented
 
-- ASP.NET Core API targeting .NET 8
-- modular Domain/Application/Infrastructure/API boundaries
-- health endpoint
-- versioned copilot query endpoint
-- correlation ID and structured logging scope
-- safe abstention while retrieval is unavailable
-- unit and HTTP integration tests
-- CI build/test workflow
+- ASP.NET Core .NET 8 modular monolith: API, Application, Domain, Infrastructure.
+- PostgreSQL + EF Core + pgvector for tenants, documents, chunks, ingestion jobs and approvals.
+- Deterministic chunking, metadata capture, idempotent ingestion and seeded demo runbooks.
+- Hybrid retrieval: lexical term matching + pgvector semantic search + Reciprocal Rank Fusion.
+- LLM abstraction with a no-key extractive demo provider and optional Ollama provider with fallback.
+- Prompt-injection guard, untrusted document boundaries and citation allow-list validation.
+- Kafka-compatible Redpanda ingestion path with manual commits and DLQ publication.
+- Tool calling through an explicit registry: health, consumer lag, booking status and approval-gated DLQ replay.
+- Explicit workflow state machine for auditable agent-style behavior.
+- JWT demo auth, tenant enforcement, rate limiting, correlation IDs and SSE streaming.
+- Request latency + token/cost dashboard and OpenTelemetry hooks.
+- Python FastAPI embedding service and Python evaluation CLI where the AI ecosystem is useful.
+- Docker Compose, Kubernetes/Azure deployment notes, architecture docs, Obsidian notes and PDF handbook.
 
-No LLM is connected yet. This is intentional: retrieval and grounding will be measured before generated answers are introduced.
+## Quick start: full demo stack
 
-## Run locally
+Prerequisite: Docker Desktop. First run can be slow because the Python image/model cache has to build/download.
 
 ```powershell
-docker-compose -f compose.yaml up -d postgres
-dotnet restore ProductionSupportCopilot.sln --configfile NuGet.Config
-dotnet run --project src/ProductionSupportCopilot.Api
+docker compose up --build
+# If your Docker CLI does not support the space form:
+docker-compose -f compose.yaml up --build
 ```
 
-Then call:
-
-```http
-GET /health
-
-POST /api/v1/copilot/query
-Content-Type: application/json
-
-{
-  "question": "Why are booking updates delayed?",
-  "tenantId": "demo-tenant"
-}
-```
-
-The current response intentionally has `isGrounded: false`, no citations, and status `retrieval_not_configured`.
-
-Lexical retrieval is available at:
-
-```http
-GET /api/v1/retrieval/search?tenantId=10000000-0000-0000-0000-000000000001&query=consumer%20lag&limit=5
-```
-
-In Development, database migrations and three demo runbooks are initialized idempotently. Search results include document/chunk citation metadata and PostgreSQL full-text ranking scores. No LLM is used yet.
-
-In the Development environment, Swagger UI is available at:
+Open Swagger:
 
 ```text
 http://localhost:5051/swagger
 ```
 
-## Test
+Demo flow:
 
-```powershell
-dotnet test ProductionSupportCopilot.sln
+1. `POST /api/v1/auth/demo-token`
+2. Copy `accessToken`
+3. Click Swagger **Authorize**
+4. Enter `Bearer <token>`
+5. Try:
+   - `POST /api/v1/retrieval/hybrid-search`
+   - `POST /api/v1/copilot/query`
+   - `POST /api/v1/copilot/query/stream`
+   - `POST /api/v1/workflows/run`
+   - `GET /api/v1/tools`
+   - `POST /api/v1/tools/replay-dead-letter/execute`
+   - `POST /api/v1/approvals/{approvalId}/decision`
+   - `GET /api/v1/observability/dashboard`
+
+Useful sample question:
+
+```json
+{
+  "question": "Why are booking status updates delayed and what should I check?",
+  "tenantId": "demo-tenant"
+}
 ```
 
-## Design
+## Lightweight local mode
 
+Run only PostgreSQL in Docker, then run the API from your IDE/terminal:
+
+```powershell
+docker compose up -d postgres
+# Or:
+docker-compose -f compose.yaml up -d postgres
+dotnet restore ProductionSupportCopilot.sln --configfile NuGet.Config
+dotnet run --project src/ProductionSupportCopilot.Api
+```
+
+In Development, the API applies EF migrations and seeds demo runbooks when `Database:Initialize=true`.
+
+## Test and evaluate
+
+```powershell
+dotnet build ProductionSupportCopilot.sln
+dotnet test ProductionSupportCopilot.sln
+python evaluation/evaluate.py --base-url http://localhost:5051
+```
+
+The evaluation dataset covers answerable questions, insufficient evidence, prompt-injection attempts, tenant boundaries, stale-document behavior, tool use and approvals. Treat local toy-corpus scores as learning signals, not production proof.
+
+## pgAdmin connection
+
+- Host: `localhost`
+- Port: `5432`
+- Database: `support_copilot`
+- User: `support`
+- Password: `support_dev_password`
+
+Tables:
+
+- `tenants`
+- `support_documents`
+- `document_chunks`
+- `ingestion_jobs`
+- `approval_requests`
+
+## Documentation map
+
+- [AI restart context](AI_CONTEXT.md)
+- [Hinglish learning journal](PROJECT_LEARNING_JOURNAL_HINGLISH.md)
+- [Obsidian knowledge graph](docs/obsidian/Home.md)
+- [Architecture and capacity design](docs/architecture-design.md)
 - [Product requirements](docs/product-requirements.md)
 - [ADR 0001: Modular monolith](docs/decisions/0001-modular-monolith.md)
-- [Hinglish learning and decision journal](PROJECT_LEARNING_JOURNAL_HINGLISH.md)
+- [Beginner-friendly PDF handbook](output/pdf/Production_Support_Copilot_Hinglish_Handbook.pdf)
+- [Kubernetes manifest](deploy/kubernetes/support-copilot.yaml)
+- [Azure deployment notes](deploy/azure/README.md)
 
-## Next milestone
+## Honest limitations
 
-PostgreSQL/pgvector, EF Core migrations, deterministic development seeding, and tenant-filtered lexical retrieval are working. Next, build a golden retrieval dataset, measure Recall@K, add a generated full-text index for scale, and then introduce embeddings for semantic/hybrid retrieval.
+- The default answer generator is deterministic/extractive so the demo needs no paid API key.
+- Ollama is optional and must be installed separately for local generative inference.
+- Tools and operational data are synthetic; this project does not touch a real employer system.
+- The dashboard is in-memory; production should export OpenTelemetry to a durable backend.
+- Large-scale retrieval still needs measured PostgreSQL full-text indexes, ANN tuning and load tests.
