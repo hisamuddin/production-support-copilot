@@ -41,11 +41,13 @@ namespace ProductionSupportCopilot.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("EventId")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("ExternalDocumentId")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("LastError")
                         .HasColumnType("text");

@@ -19,7 +19,6 @@ The product is a support copilot for event-driven .NET services. It ingests runb
 - Request latency + token/cost dashboard and OpenTelemetry hooks.
 - Python FastAPI embedding service and Python evaluation CLI where the AI ecosystem is useful.
 - Docker Compose, Kubernetes/Azure deployment notes, architecture docs, Obsidian notes and PDF handbook.
-- Verified build/test status: `dotnet build` clean, `dotnet test` 15/15 passing.
 
 ## Quick start: full demo stack
 

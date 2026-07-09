@@ -22,7 +22,24 @@ public sealed class IngestionJob : Entity
     public int Attempts { get; private set; }
     public string? LastError { get; private set; }
 
-    public void Start() { Status = IngestionStatus.Processing; Attempts++; MarkUpdated(); }
-    public void Complete() { Status = IngestionStatus.Completed; LastError = null; MarkUpdated(); }
-    public void Fail(string error, bool deadLettered) { Status = deadLettered ? IngestionStatus.DeadLettered : IngestionStatus.Failed; LastError = error; MarkUpdated(); }
+    public void Start()
+    {
+        Status = IngestionStatus.Processing;
+        Attempts++;
+        MarkUpdated();
+    }
+
+    public void Complete()
+    {
+        Status = IngestionStatus.Completed;
+        LastError = null;
+        MarkUpdated();
+    }
+
+    public void Fail(string error, bool deadLettered)
+    {
+        Status = deadLettered ? IngestionStatus.DeadLettered : IngestionStatus.Failed;
+        LastError = error;
+        MarkUpdated();
+    }
 }

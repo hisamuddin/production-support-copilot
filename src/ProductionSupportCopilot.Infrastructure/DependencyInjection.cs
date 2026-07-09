@@ -18,11 +18,18 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        var connection = configuration.GetConnectionString("Postgres") ?? "Host=localhost;Port=5432;Database=support_copilot;Username=support;Password=support_dev_password";
-        services.AddDbContext<SupportCopilotDbContext>(options => options.UseNpgsql(connection, npgsql => npgsql.UseVector()));
+        var connection = configuration.GetConnectionString("Postgres")
+            ?? "Host=localhost;Port=5432;Database=support_copilot;Username=support;Password=support_dev_password";
+
+        services.AddDbContext<SupportCopilotDbContext>(options =>
+            options.UseNpgsql(connection, npgsql => npgsql.UseVector()));
+
         services.AddScoped<IDocumentIngestionService, DocumentIngestionService>();
         services.AddScoped<IHybridRetriever, PostgresHybridRetriever>();
         services.AddScoped<IApprovalService, ApprovalService>();
+        services.AddSingleton<IDocumentChunker, DeterministicDocumentChunker>();
+        services.AddScoped<DevelopmentDataSeeder>();
+        services.AddScoped<IDocumentSearchService, PostgresDocumentSearchService>();
 
         var useHttpEmbedding = configuration.GetValue("Embedding:UseHttp", false);
         if (useHttpEmbedding)
@@ -38,9 +45,6 @@ public static class DependencyInjection
             services.AddSingleton<IEmbeddingProvider, DeterministicEmbeddingProvider>();
         }
 
-        services.AddSingleton<IDocumentChunker, DeterministicDocumentChunker>();
-        services.AddScoped<DevelopmentDataSeeder>();
-        services.AddScoped<IDocumentSearchService, PostgresDocumentSearchService>();
         services.Configure<KafkaOptions>(configuration.GetSection(KafkaOptions.SectionName));
         var kafkaEnabled = configuration.GetValue("Kafka:Enabled", false);
         if (kafkaEnabled)
@@ -48,7 +52,10 @@ public static class DependencyInjection
             services.AddSingleton<IIngestionEventPublisher, KafkaIngestionPublisher>();
             services.AddHostedService<KafkaIngestionWorker>();
         }
-        else services.AddScoped<IIngestionEventPublisher, DirectIngestionPublisher>();
+        else
+        {
+            services.AddScoped<IIngestionEventPublisher, DirectIngestionPublisher>();
+        }
 
         return services;
     }

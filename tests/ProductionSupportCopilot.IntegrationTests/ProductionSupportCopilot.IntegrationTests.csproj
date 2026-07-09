@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ProductionSupportCopilot.Api\ProductionSupportCopilot.Api.csproj" />
+    <ProjectReference Include="..\..\src\ProductionSupportCopilot.Application\ProductionSupportCopilot.Application.csproj" />
   </ItemGroup>
 
 </Project>

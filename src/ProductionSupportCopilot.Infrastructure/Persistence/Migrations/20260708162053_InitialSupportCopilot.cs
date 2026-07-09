@@ -42,8 +42,8 @@ namespace ProductionSupportCopilot.Infrastructure.Persistence.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     TenantId = table.Column<Guid>(type: "uuid", nullable: false),
-                    EventId = table.Column<string>(type: "text", nullable: false),
-                    ExternalDocumentId = table.Column<string>(type: "text", nullable: false),
+                    EventId = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    ExternalDocumentId = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     Status = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
                     Attempts = table.Column<int>(type: "integer", nullable: false),
                     LastError = table.Column<string>(type: "text", nullable: true),

@@ -36,7 +36,10 @@ public sealed class SupportCopilotDbContext(DbContextOptions<SupportCopilotDbCon
             entity.Property(x => x.Title).HasMaxLength(300);
             entity.Property(x => x.SourceType).HasMaxLength(50);
             entity.Property(x => x.Classification).HasMaxLength(50);
-            entity.HasOne(x => x.Tenant).WithMany(x => x.Documents).HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.Tenant)
+                .WithMany(x => x.Documents)
+                .HasForeignKey(x => x.TenantId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<DocumentChunk>(entity =>
@@ -45,7 +48,10 @@ public sealed class SupportCopilotDbContext(DbContextOptions<SupportCopilotDbCon
             entity.HasKey(x => x.Id);
             entity.HasIndex(x => new { x.DocumentId, x.Ordinal }).IsUnique();
             entity.Property(x => x.Embedding).HasColumnType("vector(384)");
-            entity.HasOne(x => x.Document).WithMany(x => x.Chunks).HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.Document)
+                .WithMany(x => x.Chunks)
+                .HasForeignKey(x => x.DocumentId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<IngestionJob>(entity =>

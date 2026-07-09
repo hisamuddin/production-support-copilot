@@ -2,10 +2,6 @@ using ProductionSupportCopilot.Application.Documents;
 
 namespace ProductionSupportCopilot.Infrastructure.Documents;
 
-/// <summary>
-/// Splits large runbooks/tickets into deterministic overlapping chunks.
-/// Deterministic output matters for repeatable tests and stable embeddings.
-/// </summary>
 public sealed class DeterministicDocumentChunker : IDocumentChunker
 {
     public IReadOnlyList<ChunkDraft> Chunk(string content, int targetCharacters = 1200, int overlapCharacters = 180)
@@ -42,7 +38,6 @@ public sealed class DeterministicDocumentChunker : IDocumentChunker
 
             var nextStart = Math.Max(0, end - overlapCharacters);
             start = MoveToWordBoundary(normalized, nextStart, end);
-
             if (start >= end)
             {
                 start = end;
