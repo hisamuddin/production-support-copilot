@@ -5,7 +5,8 @@ using ProductionSupportCopilot.Domain.Workflow;
 
 namespace ProductionSupportCopilot.Infrastructure.Persistence;
 
-public sealed class SupportCopilotDbContext(DbContextOptions<SupportCopilotDbContext> options) : DbContext(options)
+public sealed class SupportCopilotDbContext(DbContextOptions<SupportCopilotDbContext> options)
+    : DbContext(options)
 {
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<SupportDocument> Documents => Set<SupportDocument>();
@@ -52,6 +53,8 @@ public sealed class SupportCopilotDbContext(DbContextOptions<SupportCopilotDbCon
             entity.ToTable("ingestion_jobs");
             entity.HasKey(x => x.Id);
             entity.HasIndex(x => x.EventId).IsUnique();
+            entity.Property(x => x.EventId).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.ExternalDocumentId).HasMaxLength(200).IsRequired();
             entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(30);
         });
 

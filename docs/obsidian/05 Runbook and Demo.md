@@ -6,11 +6,25 @@ Related: [[03 Class and Service Catalog]], [[06 System Design Interview]].
 
 ```powershell
 docker compose up --build
+# If your Docker CLI does not support this form:
+docker-compose -f compose.yaml up --build
 ```
 
 Swagger: `http://localhost:5051/swagger`
 
 Token -> Authorize -> hybrid query -> grounded query -> current-health workflow -> DLQ replay workflow -> approval -> injection/tenant negative tests.
+
+## Lightweight run
+
+```powershell
+docker compose up -d postgres
+# Or:
+docker-compose -f compose.yaml up -d postgres
+dotnet restore ProductionSupportCopilot.sln --configfile NuGet.Config
+dotnet run --project src/ProductionSupportCopilot.Api
+```
+
+Development mode migrations and demo seed runbooks run when `Database:Initialize=true`.
 
 ## Database inspection
 
@@ -31,3 +45,4 @@ python evaluation/evaluate.py --base-url http://localhost:5051
 - Empty retrieval: seed did not complete; inspect API logs and database.
 - Locked DLL on Windows: stop running API/testhost, then build again.
 - NuGet NU1900 offline warning: vulnerability feed unreachable; build may still compile from cache, but CI should perform online audit.
+- Swagger 404: ensure the API is running on port `5051` and open `/swagger/index.html`.

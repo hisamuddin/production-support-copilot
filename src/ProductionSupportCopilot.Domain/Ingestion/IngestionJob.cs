@@ -7,6 +7,7 @@ public enum IngestionStatus { Pending, Processing, Completed, Failed, DeadLetter
 public sealed class IngestionJob : Entity
 {
     private IngestionJob() { }
+
     public IngestionJob(Guid tenantId, string eventId, string externalDocumentId)
     {
         TenantId = tenantId;

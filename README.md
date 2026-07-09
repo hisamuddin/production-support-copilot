@@ -1,68 +1,123 @@
 # Production Support Copilot
 
-A production-minded, multi-tenant support assistant for event-driven .NET services. It retrieves runbooks with citations, inspects a safe mock service through controlled tools, drafts grounded answers, and pauses consequential actions for human approval.
+A production-minded portfolio project for senior .NET engineers moving into Applied AI Engineering / AI Architecture.
 
-## Implemented architecture
+The product is a support copilot for event-driven .NET services. It ingests runbooks/tickets, chunks and embeds documents, retrieves tenant-authorized evidence, answers with citations, calls safe mock tools, and pauses consequential actions for human approval.
 
-- ASP.NET Core .NET 8 modular monolith: API, Application, Domain, Infrastructure
-- EF Core + PostgreSQL + pgvector, initial migration and synthetic seed runbooks
-- deterministic chunking; MiniLM embeddings through a small Python FastAPI service
-- lexical + vector retrieval combined with Reciprocal Rank Fusion
-- Kafka-compatible Redpanda ingestion, event idempotency, manual commits and DLQ
-- LLM provider abstraction: no-key extractive demo and optional Ollama structured output with retry/fallback
-- SSE streaming, explicit workflow state machine, read-only tools and approval-gated DLQ replay
-- JWT tenant enforcement, rate limits, prompt-injection boundaries and citation allow-list
-- correlation IDs, latency dashboard, golden evaluation dataset, unit/integration tests
-- Docker Compose and GitHub Actions
+## What is implemented
 
-## Run the full stack
+- ASP.NET Core .NET 8 modular monolith: API, Application, Domain, Infrastructure.
+- PostgreSQL + EF Core + pgvector for tenants, documents, chunks, ingestion jobs and approvals.
+- Deterministic chunking, metadata capture, idempotent ingestion and seeded demo runbooks.
+- Hybrid retrieval: lexical term matching + pgvector semantic search + Reciprocal Rank Fusion.
+- LLM abstraction with a no-key extractive demo provider and optional Ollama provider with fallback.
+- Prompt-injection guard, untrusted document boundaries and citation allow-list validation.
+- Kafka-compatible Redpanda ingestion path with manual commits and DLQ publication.
+- Tool calling through an explicit registry: health, consumer lag, booking status and approval-gated DLQ replay.
+- Explicit workflow state machine for auditable agent-style behavior.
+- JWT demo auth, tenant enforcement, rate limiting, correlation IDs and SSE streaming.
+- Request latency + token/cost dashboard and OpenTelemetry hooks.
+- Python FastAPI embedding service and Python evaluation CLI where the AI ecosystem is useful.
+- Docker Compose, Kubernetes/Azure deployment notes, architecture docs, Obsidian notes and PDF handbook.
+- Verified build/test status: `dotnet build` clean, `dotnet test` 15/15 passing.
 
-Prerequisite: Docker Desktop with enough disk/RAM for the first Python/model image build.
+## Quick start: full demo stack
+
+Prerequisite: Docker Desktop. First run can be slow because the Python image/model cache has to build/download.
 
 ```powershell
 docker compose up --build
+# If your Docker CLI does not support the space form:
+docker-compose -f compose.yaml up --build
 ```
 
-Open [Swagger](http://localhost:5051/swagger). Call `POST /api/v1/auth/demo-token`, copy `accessToken`, click **Authorize**, and enter `Bearer <token>`.
+Open Swagger:
 
-Suggested demo order:
+```text
+http://localhost:5051/swagger
+```
 
-1. `POST /api/v1/retrieval/hybrid-search`
-2. `POST /api/v1/copilot/query`
-3. `POST /api/v1/copilot/query/stream`
-4. `POST /api/v1/workflows/run` with a current-health question
-5. Run the workflow with “Replay the DLQ”, then decide the returned approval ID
-6. Try a prompt-injection phrase and a mismatched tenant
-7. Inspect `/api/v1/observability/dashboard`
+Demo flow:
 
-## Lightweight developer mode
+1. `POST /api/v1/auth/demo-token`
+2. Copy `accessToken`
+3. Click Swagger **Authorize**
+4. Enter `Bearer <token>`
+5. Try:
+   - `POST /api/v1/retrieval/hybrid-search`
+   - `POST /api/v1/copilot/query`
+   - `POST /api/v1/copilot/query/stream`
+   - `POST /api/v1/workflows/run`
+   - `GET /api/v1/tools`
+   - `POST /api/v1/tools/replay-dead-letter/execute`
+   - `POST /api/v1/approvals/{approvalId}/decision`
+   - `GET /api/v1/observability/dashboard`
 
-This uses local PostgreSQL, deterministic offline embeddings and direct ingestion; Kafka and the Python model are disabled by default.
+Useful sample question:
+
+```json
+{
+  "question": "Why are booking status updates delayed and what should I check?",
+  "tenantId": "demo-tenant"
+}
+```
+
+## Lightweight local mode
+
+Run only PostgreSQL in Docker, then run the API from your IDE/terminal:
 
 ```powershell
+docker compose up -d postgres
+# Or:
+docker-compose -f compose.yaml up -d postgres
 dotnet restore ProductionSupportCopilot.sln --configfile NuGet.Config
 dotnet run --project src/ProductionSupportCopilot.Api
 ```
 
+In Development, the API applies EF migrations and seeds demo runbooks when `Database:Initialize=true`.
+
 ## Test and evaluate
 
 ```powershell
+dotnet build ProductionSupportCopilot.sln
 dotnet test ProductionSupportCopilot.sln
 python evaluation/evaluate.py --base-url http://localhost:5051
 ```
 
-The evaluation dataset covers answerable, unanswerable, injection, authorization, stale-document, tool and approval cases. Toy-corpus scores must not be presented as production evidence.
+The evaluation dataset covers answerable questions, insufficient evidence, prompt-injection attempts, tenant boundaries, stale-document behavior, tool use and approvals. Treat local toy-corpus scores as learning signals, not production proof.
 
-## Documentation
+## pgAdmin connection
+
+- Host: `localhost`
+- Port: `5432`
+- Database: `support_copilot`
+- User: `support`
+- Password: `support_dev_password`
+
+Tables:
+
+- `tenants`
+- `support_documents`
+- `document_chunks`
+- `ingestion_jobs`
+- `approval_requests`
+
+## Documentation map
 
 - [AI restart context](AI_CONTEXT.md)
-- [Complete Hinglish learning journal](PROJECT_LEARNING_JOURNAL_HINGLISH.md)
+- [Hinglish learning journal](PROJECT_LEARNING_JOURNAL_HINGLISH.md)
 - [Obsidian knowledge graph](docs/obsidian/Home.md)
 - [Architecture and capacity design](docs/architecture-design.md)
 - [Product requirements](docs/product-requirements.md)
-- [Modular monolith decision](docs/decisions/0001-modular-monolith.md)
+- [ADR 0001: Modular monolith](docs/decisions/0001-modular-monolith.md)
 - [Beginner-friendly PDF handbook](output/pdf/Production_Support_Copilot_Hinglish_Handbook.pdf)
+- [Kubernetes manifest](deploy/kubernetes/support-copilot.yaml)
+- [Azure deployment notes](deploy/azure/README.md)
 
-## Safe limitations
+## Honest limitations
 
-The tools and data are synthetic. No real employer/production system is accessed. Default answer generation is deterministic so the project runs without a paid key. Ollama is optional. The in-memory dashboard demonstrates metrics; a production deployment should export OpenTelemetry. Application-side lexical scoring is suitable for the seed corpus; larger deployments should use PostgreSQL full-text indexes and measured ANN tuning.
+- The default answer generator is deterministic/extractive so the demo needs no paid API key.
+- Ollama is optional and must be installed separately for local generative inference.
+- Tools and operational data are synthetic; this project does not touch a real employer system.
+- The dashboard is in-memory; production should export OpenTelemetry to a durable backend.
+- Large-scale retrieval still needs measured PostgreSQL full-text indexes, ANN tuning and load tests.

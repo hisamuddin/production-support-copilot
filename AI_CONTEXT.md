@@ -8,6 +8,8 @@ Build and teach a production-minded **Production Support Copilot for event-drive
 
 ## Current verified implementation
 
+Last local verification: 2026-07-09. `dotnet build ProductionSupportCopilot.sln` completed with 0 warnings/0 errors. `dotnet test ProductionSupportCopilot.sln` passed 15/15 tests.
+
 - .NET 8 modular monolith: API, Application, Domain, Infrastructure.
 - JWT demo authentication, tenant claim enforcement, fixed-window rate limiting.
 - EF Core + PostgreSQL + pgvector schema and initial migration.
@@ -23,6 +25,7 @@ Build and teach a production-minded **Production Support Copilot for event-drive
 - OpenTelemetry ASP.NET/HTTP/RAG tracing hooks, request latency plus token/cost dashboard, correlation IDs and streaming SSE endpoint.
 - Golden evaluation dataset and Python evaluation CLI.
 - Unit/integration tests, Docker Compose, GitHub Actions.
+- Merge-conflict audit is clean; old duplicate document-store model files were removed in favor of the current `Domain.Knowledge` model.
 
 ## Truthful limitations
 
@@ -38,8 +41,9 @@ Build and teach a production-minded **Production Support Copilot for event-drive
 1. Read `PROJECT_LEARNING_JOURNAL_HINGLISH.md`.
 2. Open `docs/obsidian/Home.md` as an Obsidian vault entry.
 3. Run `dotnet test ProductionSupportCopilot.sln`.
-4. Run full stack with `docker compose up --build`.
+4. Run full stack with `docker compose up --build` or `docker-compose -f compose.yaml up --build` depending on the local Docker CLI.
 5. Open `http://localhost:5051/swagger` and create a demo token.
+6. If only PostgreSQL is needed, run `docker compose up -d postgres` or `docker-compose -f compose.yaml up -d postgres`, then `dotnet run --project src/ProductionSupportCopilot.Api`.
 
 ## Rules for future changes
 

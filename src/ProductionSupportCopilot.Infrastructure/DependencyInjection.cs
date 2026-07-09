@@ -33,8 +33,14 @@ public static class DependencyInjection
                 client.Timeout = TimeSpan.FromSeconds(30);
             });
         }
-        else services.AddSingleton<IEmbeddingProvider, DeterministicEmbeddingProvider>();
+        else
+        {
+            services.AddSingleton<IEmbeddingProvider, DeterministicEmbeddingProvider>();
+        }
 
+        services.AddSingleton<IDocumentChunker, DeterministicDocumentChunker>();
+        services.AddScoped<DevelopmentDataSeeder>();
+        services.AddScoped<IDocumentSearchService, PostgresDocumentSearchService>();
         services.Configure<KafkaOptions>(configuration.GetSection(KafkaOptions.SectionName));
         var kafkaEnabled = configuration.GetValue("Kafka:Enabled", false);
         if (kafkaEnabled)

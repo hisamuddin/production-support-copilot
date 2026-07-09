@@ -52,7 +52,7 @@ Related: [[01 Architecture Map]], [[02 RAG From Zero]], [[05 Runbook and Demo]].
 | Class | External responsibility | Failure behavior |
 |---|---|---|
 | `SupportCopilotDbContext` | EF tables, constraints, vector extension | DB exceptions surface to API/logs |
-| `DatabaseInitializer` | local create + seed runbooks | startup fails fast if configured DB unavailable |
+| `DatabaseInitializer` | local migrate + seed runbooks | startup fails fast if configured DB unavailable |
 | `DocumentIngestionService` | idempotency, upsert, chunk, embed, persist | job error captured; DLQ path can publish |
 | `DeterministicEmbeddingProvider` | offline hashed vectors | always local; not true semantic model |
 | `HttpEmbeddingProvider` | call Python `/embed` | timeout/status/dimension validation |

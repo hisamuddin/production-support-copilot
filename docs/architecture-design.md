@@ -60,7 +60,7 @@ At that size, use partition/ACL filters before ANN, HNSW based on measured recal
 - RRF combines incomparable lexical/vector raw scores without training; a cross-encoder can improve quality later at latency cost.
 - Deterministic fallback prioritizes availability and grounding over fluent generation.
 - Explicit workflow states are less flexible than an autonomous agent but substantially more auditable and safe.
-- `EnsureCreated` supports local bootstrap; the checked-in EF migration is the controlled schema-evolution artifact.
+- EF migrations are the controlled schema-evolution artifact; local development can auto-migrate and seed when `Database:Initialize=true`.
 
 ## Production hardening backlog
 
